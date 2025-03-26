@@ -7,6 +7,7 @@ from constants import *
 from player import Player
 from shot import Shot
 from missile import Missile
+from explosion import Explosion
 
 def game_over_screen(score):
     game_over_font = pygame.font.Font(None, MENU_TITLE_SIZE)
@@ -56,12 +57,14 @@ def game_loop():
     asteroids = pygame.sprite.Group()
     shots = pygame.sprite.Group()
     missiles = pygame.sprite.Group()
+    explosions = pygame.sprite.Group()
 
     Player.containers = (updatable, drawable)
     Asteroid.containers = (asteroids, updatable, drawable)
     AsteroidField.containers = (updatable,)
     Shot.containers = (shots, updatable, drawable)
     Missile.containers = (missiles, updatable, drawable)
+    Explosion.containers = (explosions, updatable, drawable)
 
     player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
     player.respawn(reset_missiles=True)  # Reset missiles when starting new game
@@ -93,6 +96,10 @@ def game_loop():
                 lives -= 1
                 print(f"Lives remaining: {lives}")
                 
+                # Create explosion for the asteroid that hit the player
+                Explosion(asteroid.position.x, asteroid.position.y, asteroid.radius)
+                asteroid.kill()
+                
                 if lives <= 0:
                     print("Game over!")
                     game_over_screen(score)
@@ -105,6 +112,10 @@ def game_loop():
             for shot in shots:
                 if asteroid.is_colliding(shot):
                     shot.kill()
+                    
+                    # Create explosion at the asteroid's position
+                    Explosion(asteroid.position.x, asteroid.position.y, asteroid.radius)
+                    
                     if asteroid.split():
                         # Increase score when an asteroid is fully destroyed
                         score += SCORE_ASTEROID_SMALL
@@ -113,6 +124,11 @@ def game_loop():
             for missile in missiles:
                 if asteroid.is_colliding(missile):
                     missile.kill()
+                    
+                    # Create a bigger explosion for missile hits
+                    # Red-orange color for missile explosions
+                    Explosion(asteroid.position.x, asteroid.position.y, asteroid.radius * 1.5, (255, 100, 50))
+                    
                     # Calculate score based on asteroid size
                     if asteroid.radius >= ASTEROID_MIN_RADIUS * 3:
                         score += SCORE_ASTEROID_SMALL * 4  # Large asteroid

@@ -23,6 +23,12 @@ MISSILE_RADIUS = 7
 MISSILE_SPEED = 300
 MISSILE_COOLDOWN = 0.5  # seconds
 
+# Explosion constants
+EXPLOSION_DURATION = 0.5  # seconds
+EXPLOSION_PARTICLES = 12
+EXPLOSION_SPEED = 120
+EXPLOSION_FADE_SPEED = 2.0  # how quickly particles fade
+
 # Scoring constants
 SCORE_ASTEROID_SMALL = 100
 SCORE_FONT_SIZE = 36 
