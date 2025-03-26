@@ -4,6 +4,12 @@ from pygame.time import wait
 from circleshape import CircleShape
 from constants import ASTEROID_MIN_RADIUS
 
+# Import explosion conditionally to avoid circular import
+try:
+    from explosion import Explosion
+except ImportError:
+    Explosion = None
+
 class Asteroid(CircleShape):
     def __init__(self, x, y, radius):
         super().__init__(x, y, radius)
@@ -15,6 +21,11 @@ class Asteroid(CircleShape):
         self.position += self.velocity * dt
 
     def split(self):
+        # Create a small explosion when any asteroid is destroyed
+        if Explosion is not None:
+            # Yellow-white color for normal asteroid destruction
+            Explosion(self.position.x, self.position.y, self.radius * 0.8, (230, 230, 150))
+            
         self.kill()
         if self.radius <= ASTEROID_MIN_RADIUS:
             return True  # Return True if asteroid was fully destroyed
