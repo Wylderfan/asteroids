@@ -15,6 +15,10 @@ PLAYER_LIVES = 3
 PLAYER_RESPAWN_TIME = 2.0  # seconds of invulnerability after respawn
 PLAYER_BLINK_RATE = 0.1  # seconds between visibility toggle during invulnerability
 PLAYER_MISSILE_COUNT = 5
+PLAYER_ACCELERATION = 200  # acceleration rate (units/second²)
+PLAYER_DECELERATION = 400  # deceleration when not accelerating (units/second²)
+PLAYER_MAX_SPEED = 250     # maximum player speed
+PLAYER_DRIFT_FACTOR = 0.05 # how much the ship drifts (0-1, lower = less drift)
 
 SHOT_RADIUS = 5 
 
