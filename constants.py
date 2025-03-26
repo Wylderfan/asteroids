@@ -11,8 +11,17 @@ PLAYER_SPEED = 200
 PLAYER_TURN_SPEED = 300
 PLAYER_SHOT_SPEED = 500
 PLAYER_SHOT_COOLDOWN = 0.3
+PLAYER_LIVES = 3
+PLAYER_RESPAWN_TIME = 2.0  # seconds of invulnerability after respawn
+PLAYER_BLINK_RATE = 0.1  # seconds between visibility toggle during invulnerability
+PLAYER_MISSILE_COUNT = 5
 
 SHOT_RADIUS = 5 
+
+# Missile constants
+MISSILE_RADIUS = 7
+MISSILE_SPEED = 300
+MISSILE_COOLDOWN = 0.5  # seconds
 
 # Scoring constants
 SCORE_ASTEROID_SMALL = 100

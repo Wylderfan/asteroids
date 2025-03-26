@@ -6,6 +6,7 @@ from asteroidfield import AsteroidField
 from constants import *
 from player import Player
 from shot import Shot
+from missile import Missile
 
 def game_over_screen(score):
     game_over_font = pygame.font.Font(None, MENU_TITLE_SIZE)
@@ -41,8 +42,9 @@ def game_over_screen(score):
 
 def game_loop():
     
-    # Initialize score
+    # Initialize score and lives
     score = 0
+    lives = PLAYER_LIVES
     font = pygame.font.Font(None, SCORE_FONT_SIZE)
 
     clock = pygame.time.Clock()
@@ -53,17 +55,20 @@ def game_loop():
     drawable = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
     shots = pygame.sprite.Group()
+    missiles = pygame.sprite.Group()
 
     Player.containers = (updatable, drawable)
     Asteroid.containers = (asteroids, updatable, drawable)
     AsteroidField.containers = (updatable,)
     Shot.containers = (shots, updatable, drawable)
+    Missile.containers = (missiles, updatable, drawable)
 
     player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+    player.respawn(reset_missiles=True)  # Reset missiles when starting new game
     asteroid_field = AsteroidField()
     asteroid_field.asteroid_group = asteroids
     asteroid_field.reset()  # Call reset after setting asteroid_group
-
+    
     running = True
     while running:
         for event in pygame.event.get():
@@ -72,31 +77,88 @@ def game_loop():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return  # Return to main menu
+                if event.key == pygame.K_e:
+                    # Handle missile firing here (in addition to the key check in player update)
+                    player.fire_missile()
 
         screen.fill("black")
         for object in updatable:
             object.update(dt)
         for object in drawable:
             object.draw(screen)
+            
+        # Check player collisions with asteroids
         for asteroid in asteroids:
-            if asteroid.is_colliding(player):
-                print("Game over!")
-                game_over_screen(score)
-                return  # Return to main menu on game over
+            if asteroid.is_colliding(player) and not player.is_invulnerable:
+                lives -= 1
+                print(f"Lives remaining: {lives}")
+                
+                if lives <= 0:
+                    print("Game over!")
+                    game_over_screen(score)
+                    return  # Return to main menu on game over
+                else:
+                    # Respawn player with invulnerability
+                    player.respawn()
+            
+            # Check regular shot collisions
             for shot in shots:
                 if asteroid.is_colliding(shot):
                     shot.kill()
                     if asteroid.split():
                         # Increase score when an asteroid is fully destroyed
                         score += SCORE_ASTEROID_SMALL
+            
+            # Check missile collisions - missiles destroy any asteroid on contact
+            for missile in missiles:
+                if asteroid.is_colliding(missile):
+                    missile.kill()
+                    # Calculate score based on asteroid size
+                    if asteroid.radius >= ASTEROID_MIN_RADIUS * 3:
+                        score += SCORE_ASTEROID_SMALL * 4  # Large asteroid
+                    elif asteroid.radius >= ASTEROID_MIN_RADIUS * 2:
+                        score += SCORE_ASTEROID_SMALL * 2  # Medium asteroid
+                    else:
+                        score += SCORE_ASTEROID_SMALL      # Small asteroid
+                    
+                    # Immediately destroy the asteroid without splitting
+                    asteroid.kill()
         
         # Display score
         score_text = font.render(f"Score: {score}", True, (255, 255, 255))
         score_rect = score_text.get_rect(topright=(SCREEN_WIDTH - 20, 20))
         screen.blit(score_text, score_rect)
         
+        # Display lives
+        lives_text = font.render(f"Lives: ", True, (255, 255, 255))
+        lives_rect = lives_text.get_rect(topleft=(20, 20))
+        screen.blit(lives_text, lives_rect)
+        
+        # Draw life icons
+        for i in range(lives):
+            # Create a mini player triangle for each life
+            mini_player_pos = pygame.Vector2(lives_rect.right + 30 + i * 30, lives_rect.centery)
+            
+            # Draw a small ship for each life
+            radius = PLAYER_RADUIUS * 0.7
+            forward = pygame.Vector2(0, -1)  # Point upward
+            right = pygame.Vector2(1, 0) * radius / 1.5
+            
+            # Calculate triangle points
+            a = mini_player_pos + forward * radius
+            b = mini_player_pos - forward * radius - right
+            c = mini_player_pos - forward * radius + right
+            
+            # Draw the triangle
+            pygame.draw.polygon(screen, "white", [a, b, c], 1)
+        
+        # Display missile count
+        missile_text = font.render(f"Missiles: {player.missiles_remaining}", True, (255, 100, 100))
+        missile_rect = missile_text.get_rect(topleft=(20, 60))
+        screen.blit(missile_text, missile_rect)
+        
         # Display controls
-        controls_text = font.render("Controls: W/A/S/D to move, SPACE to shoot, ESC for menu", True, (150, 150, 150))
+        controls_text = font.render("Controls: W/A/S/D to move, SPACE to shoot, E for missiles, ESC for menu", True, (150, 150, 150))
         controls_rect = controls_text.get_rect(midbottom=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 10))
         screen.blit(controls_text, controls_rect)
 
