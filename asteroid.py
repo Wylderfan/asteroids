@@ -17,7 +17,7 @@ class Asteroid(CircleShape):
     def split(self):
         self.kill()
         if self.radius <= ASTEROID_MIN_RADIUS:
-            return
+            return True  # Return True if asteroid was fully destroyed
         else:
             random_angle = random.uniform(20, 50)
             pos_vec = pygame.math.Vector2.rotate(self.velocity, random_angle)
@@ -27,4 +27,5 @@ class Asteroid(CircleShape):
             pos_asteroid.velocity = pos_vec * 1.2
             neg_asteroid = Asteroid(self.position.x, self.position.y, new_radius)
             neg_asteroid.velocity = neg_vec * 1.2
+            return False  # Return False if asteroid was split
 

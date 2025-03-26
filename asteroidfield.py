@@ -30,7 +30,15 @@ class AsteroidField(pygame.sprite.Sprite):
 
     def __init__(self):
         pygame.sprite.Sprite.__init__(self, self.containers)
+        self.asteroid_group = None
         self.spawn_timer = 0.0
+
+    def reset(self):
+        self.spawn_timer = 0.0
+        # Clear all existing asteroids if asteroid_group is available
+        if self.asteroid_group:
+            for sprite in self.asteroid_group.sprites():
+                sprite.kill()
 
     def spawn(self, radius, position, velocity):
         asteroid = Asteroid(position.x, position.y, radius)
