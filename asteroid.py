@@ -2,7 +2,7 @@ import random
 import pygame
 from pygame.time import wait
 from circleshape import CircleShape
-from constants import ASTEROID_MIN_RADIUS
+from constants import ASTEROID_MIN_RADIUS, SHOW_HITBOXES
 
 # Import explosion conditionally to avoid circular import
 try:
@@ -15,7 +15,13 @@ class Asteroid(CircleShape):
         super().__init__(x, y, radius)
 
     def draw(self, screen):
+        # Draw the asteroid
         pygame.draw.circle(screen, "white", self.position, self.radius, 2) 
+        
+        # Draw hitbox in debug mode - make it more visible
+        if SHOW_HITBOXES:
+            # Draw in a more visible color with thicker lines
+            pygame.draw.circle(screen, (255, 0, 0), self.position, self.radius, 3)  # Increase thickness to 3
 
     def update(self, dt):
         self.position += self.velocity * dt

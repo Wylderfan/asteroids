@@ -14,7 +14,7 @@ PLAYER_SHOT_COOLDOWN = 0.3
 PLAYER_LIVES = 3
 PLAYER_RESPAWN_TIME = 2.0  # seconds of invulnerability after respawn
 PLAYER_BLINK_RATE = 0.1  # seconds between visibility toggle during invulnerability
-PLAYER_MISSILE_COUNT = 5
+PLAYER_MISSILE_COUNT = 1
 PLAYER_ACCELERATION = 200  # acceleration rate (units/second²)
 PLAYER_DECELERATION = 400  # deceleration when not accelerating (units/second²)
 PLAYER_MAX_SPEED = 250     # maximum player speed
@@ -43,3 +43,13 @@ MENU_OPTION_SIZE = 48
 MENU_TITLE_COLOR = (255, 255, 255)
 MENU_OPTION_COLOR = (200, 200, 200)
 MENU_SELECTED_COLOR = (255, 255, 0)
+
+# Powerup constants
+MISSILE_POWERUP_RADIUS = 15
+MISSILE_POWERUP_ROTATION_SPEED = 100  # degrees per second
+MISSILE_POWERUP_SPAWN_MIN = 30  # minimum seconds between spawns
+MISSILE_POWERUP_SPAWN_MAX = 60  # maximum seconds between spawns
+MISSILE_POWERUP_COUNT = 3  # missiles added when collected
+
+# Debug settings
+SHOW_HITBOXES = False  # Toggle with H key during gameplay

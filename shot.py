@@ -1,5 +1,6 @@
 import pygame
 from circleshape import CircleShape
+from constants import *
 
 
 class Shot(CircleShape):
@@ -8,6 +9,11 @@ class Shot(CircleShape):
 
     def draw(self, screen):
         pygame.draw.circle(screen, "white", self.position, self.radius, 2) 
+        
+        # Draw hitbox in debug mode
+        if SHOW_HITBOXES:
+            # Use yellow color to distinguish from asteroids
+            pygame.draw.circle(screen, (255, 255, 0), self.position, self.radius, 3)  # Increase thickness to 3
 
     def update(self, dt):
         self.position += self.velocity * dt

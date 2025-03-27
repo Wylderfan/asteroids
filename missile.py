@@ -20,6 +20,11 @@ class Missile(CircleShape):
             # Second trail segment
             trail_pos2 = trail_pos - direction * self.radius * 1.5
             pygame.draw.circle(screen, (255, 200, 200), trail_pos2, self.radius * 0.4)
+            
+        # Draw hitbox in debug mode
+        if SHOW_HITBOXES:
+            # Use magenta color to distinguish from other objects
+            pygame.draw.circle(screen, (255, 0, 255), self.position, self.radius, 3)
 
     def update(self, dt):
         self.position += self.velocity * dt

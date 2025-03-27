@@ -1,5 +1,6 @@
 import sys
 import pygame
+import random
 from pygame.sprite import Group, spritecollide
 from asteroid import Asteroid
 from asteroidfield import AsteroidField
@@ -8,6 +9,7 @@ from player import Player
 from shot import Shot
 from missile import Missile
 from explosion import Explosion
+from missilepower import MissilePowerup
 
 def game_over_screen(score):
     game_over_font = pygame.font.Font(None, MENU_TITLE_SIZE)
@@ -50,6 +52,13 @@ def game_loop():
 
     clock = pygame.time.Clock()
     dt = 0
+    
+    # Timer for missile powerup spawning
+    missile_powerup_timer = random.uniform(MISSILE_POWERUP_SPAWN_MIN, MISSILE_POWERUP_SPAWN_MAX)
+    
+    # Notification for missile collection
+    notification_text = ""
+    notification_timer = 0
 
     # Clear existing sprite groups
     updatable = pygame.sprite.Group()
@@ -58,6 +67,7 @@ def game_loop():
     shots = pygame.sprite.Group()
     missiles = pygame.sprite.Group()
     explosions = pygame.sprite.Group()
+    powerups = pygame.sprite.Group()
 
     Player.containers = (updatable, drawable)
     Asteroid.containers = (asteroids, updatable, drawable)
@@ -65,12 +75,25 @@ def game_loop():
     Shot.containers = (shots, updatable, drawable)
     Missile.containers = (missiles, updatable, drawable)
     Explosion.containers = (explosions, updatable, drawable)
+    MissilePowerup.containers = (powerups, updatable, drawable)
 
     player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
     player.respawn(reset_missiles=True)  # Reset missiles when starting new game
     asteroid_field = AsteroidField()
     asteroid_field.asteroid_group = asteroids
     asteroid_field.reset()  # Call reset after setting asteroid_group
+    
+    # Add initial missile powerup
+    initial_powerup_x = random.randint(100, SCREEN_WIDTH - 100)
+    initial_powerup_y = random.randint(100, SCREEN_HEIGHT - 100)
+    
+    # Make sure initial powerup isn't too close to player start position
+    while pygame.math.Vector2.distance_to(pygame.Vector2(initial_powerup_x, initial_powerup_y), player.position) < 200:
+        initial_powerup_x = random.randint(100, SCREEN_WIDTH - 100)
+        initial_powerup_y = random.randint(100, SCREEN_HEIGHT - 100)
+        
+    MissilePowerup(initial_powerup_x, initial_powerup_y)
+
     
     running = True
     while running:
@@ -83,12 +106,53 @@ def game_loop():
                 if event.key == pygame.K_e:
                     # Handle missile firing here (in addition to the key check in player update)
                     player.fire_missile()
+                # Debug key to toggle hitboxes
+                if event.key == pygame.K_h:
+                    global SHOW_HITBOXES
+                    SHOW_HITBOXES = not SHOW_HITBOXES
+                    print(f"Hitboxes {'shown' if SHOW_HITBOXES else 'hidden'}")
+
+        # Update missile powerup timer and spawn if needed
+        missile_powerup_timer -= dt
+        if missile_powerup_timer <= 0:
+            # Reset timer
+            missile_powerup_timer = random.uniform(MISSILE_POWERUP_SPAWN_MIN, MISSILE_POWERUP_SPAWN_MAX)
+            
+            # Find a random position away from the player
+            while True:
+                pos_x = random.randint(100, SCREEN_WIDTH - 100)
+                pos_y = random.randint(100, SCREEN_HEIGHT - 100)
+                powerup_pos = pygame.Vector2(pos_x, pos_y)
+                
+                # Make sure it's not too close to the player (at least 200 pixels away)
+                if pygame.math.Vector2.distance_to(powerup_pos, player.position) > 200:
+                    # Create the powerup
+                    MissilePowerup(pos_x, pos_y)
+                    # Add a small visual effect
+                    Explosion(pos_x, pos_y, MISSILE_POWERUP_RADIUS * 1.5, (100, 200, 255))
+                    break
 
         screen.fill("black")
         for object in updatable:
             object.update(dt)
         for object in drawable:
             object.draw(screen)
+            
+        # Check player collisions with missile powerups
+        for powerup in powerups:
+            if powerup.is_colliding(player):
+                # Add missiles to player
+                player.add_missiles(MISSILE_POWERUP_COUNT)
+                
+                # Create a collection effect
+                Explosion(powerup.position.x, powerup.position.y, powerup.radius * 1.2, (200, 200, 255))
+                
+                # Show notification
+                notification_text = f"+{MISSILE_POWERUP_COUNT} MISSILES"
+                notification_timer = 2.0  # Show for 2 seconds
+                
+                # Remove the powerup
+                powerup.kill()
             
         # Check player collisions with asteroids
         for asteroid in asteroids:
@@ -172,6 +236,29 @@ def game_loop():
         missile_text = font.render(f"Missiles: {player.missiles_remaining}", True, (255, 100, 100))
         missile_rect = missile_text.get_rect(topleft=(20, 60))
         screen.blit(missile_text, missile_rect)
+        
+        # Display hitbox status when enabled
+        if SHOW_HITBOXES:
+            debug_text = font.render("HITBOXES ENABLED (Press H to toggle)", True, (0, 255, 0))
+            debug_rect = debug_text.get_rect(topleft=(20, 100))
+            screen.blit(debug_text, debug_rect)
+        
+        # Display notification if active
+        if notification_timer > 0:
+            notification_timer -= dt
+            # Make it fade out by adjusting alpha
+            alpha = int(min(255, notification_timer * 255 / 2.0))
+            notification_color = (255, 200, 100, alpha if alpha > 0 else 0)
+            
+            # Create a temporary surface with alpha
+            text_surface = pygame.Surface((300, 50), pygame.SRCALPHA)
+            notification_font = pygame.font.Font(None, SCORE_FONT_SIZE + 10)
+            text = notification_font.render(notification_text, True, notification_color)
+            text_rect = text.get_rect(center=(150, 25))
+            text_surface.blit(text, text_rect)
+            
+            # Display centered on screen
+            screen.blit(text_surface, (SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 - 100))
         
         # Display controls
         controls_text = font.render("Controls: W/A/S/D to move, SPACE to shoot, E for missiles, ESC for menu", True, (150, 150, 150))

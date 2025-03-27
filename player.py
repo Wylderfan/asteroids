@@ -19,10 +19,84 @@ class Player(CircleShape):
         self.missiles_remaining = PLAYER_MISSILE_COUNT
         self.missile_timer = 0
         self.is_thrusting = False
+        self._triangle_points = []  # Cached triangle points for hitbox
 
         super().__init__(self.x, self.y, PLAYER_RADUIUS)
 
         self.timer = 0
+
+    def is_colliding(self, circle):
+        # Only use circle collision if we're invulnerable (for simplicity)
+        if self.is_invulnerable:
+            return False
+        
+        # Get updated triangle points
+        tri_points = self.triangle()
+        
+        # Skip the initial circle vs circle check - use triangle directly
+        
+        # Check if any point of the triangle is inside the circle
+        for point in tri_points:
+            if pygame.math.Vector2.distance_to(pygame.Vector2(point), circle.position) <= circle.radius:
+                return True
+                
+        # Check if the center of the circle is inside the triangle
+        if self._point_in_triangle(circle.position, *tri_points):
+            return True
+            
+        # Check if the circle intersects any of the triangle's edges
+        if self._circle_intersects_line(circle, tri_points[0], tri_points[1]) or \
+           self._circle_intersects_line(circle, tri_points[1], tri_points[2]) or \
+           self._circle_intersects_line(circle, tri_points[2], tri_points[0]):
+            return True
+            
+        return False
+    
+    def _point_in_triangle(self, p, a, b, c):
+        # Check if point p is inside triangle abc
+        def sign(p1, p2, p3):
+            return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1])
+            
+        d1 = sign(p, a, b)
+        d2 = sign(p, b, c)
+        d3 = sign(p, c, a)
+        
+        has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0)
+        has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0)
+        
+        # If all signs are the same, point is inside the triangle
+        return not (has_neg and has_pos)
+        
+    def _circle_intersects_line(self, circle, p1, p2):
+        # Check if circle intersects line segment p1-p2
+        # Convert points to vectors
+        p1 = pygame.Vector2(p1)
+        p2 = pygame.Vector2(p2)
+        
+        # Vector from p1 to p2
+        line_vec = p2 - p1
+        line_len = line_vec.length()
+        if line_len == 0:
+            return False
+            
+        # Vector from p1 to circle center
+        circle_vec = circle.position - p1
+        
+        # Project circle_vec onto line_vec
+        proj = circle_vec.dot(line_vec) / line_len
+        
+        # Find closest point on line to circle
+        if proj <= 0:
+            closest = p1  # Circle is closest to p1
+        elif proj >= line_len:
+            closest = p2  # Circle is closest to p2
+        else:
+            # Circle is closest to a point on the line segment
+            closest = p1 + line_vec * (proj / line_len)
+            
+        # Check if closest point is within circle radius
+        dist = pygame.math.Vector2.distance_to(circle.position, closest)
+        return dist <= circle.radius
 
     def respawn(self, reset_missiles=False):
         self.position = pygame.Vector2(self.start_position)
@@ -71,14 +145,27 @@ class Player(CircleShape):
                 
                 # Draw the flame
                 pygame.draw.polygon(screen, (255, 150, 50), [left_edge, right_edge, tip], 0)
+            
+        # Draw hitbox in debug mode - draw last so it's on top and visible
+        # Even when player is invulnerable, showing the hitbox is useful for debugging
+        if SHOW_HITBOXES:
+            tri = self.triangle()
+            # Draw more visibly with thicker lines and brighter color
+            pygame.draw.polygon(screen, (0, 255, 0), tri, 3)  # Green triangle hitbox
 
     def triangle(self):
+        # Use the same direction vectors as used in the draw method for consistency
         forward = pygame.Vector2(0, 1).rotate(self.rotation)
-        right = pygame.Vector2(0, 1).rotate(self.rotation + 90) * self.radius / 1.5
-        a = self.position + forward * self.radius
-        b = self.position - forward * self.radius - right
-        c = self.position - forward * self.radius + right
-        return [a, b, c]
+        right = forward.rotate(90)
+        
+        # Calculate points for the triangle matching the visible ship
+        a = self.position + forward * self.radius  # Front nose of the ship
+        b = self.position - forward * self.radius * 0.5 - right * self.radius / 1.5  # Left rear corner
+        c = self.position - forward * self.radius * 0.5 + right * self.radius / 1.5  # Right rear corner
+        
+        # Cache the triangle points as tuples for collision detection
+        self._triangle_points = [(a.x, a.y), (b.x, b.y), (c.x, c.y)]
+        return self._triangle_points
 
     def rotate(self, dt):
         self.rotation += PLAYER_TURN_SPEED * dt
@@ -186,3 +273,9 @@ class Player(CircleShape):
             self.position.y = SCREEN_HEIGHT
         elif self.position.y > SCREEN_HEIGHT:
             self.position.y = 0
+
+    def add_missiles(self, count):
+        # Add missiles to player's inventory
+        self.missiles_remaining += count
+        # Reset missile cooldown as a bonus
+        self.missile_timer = 0
